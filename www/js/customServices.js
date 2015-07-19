@@ -24,12 +24,45 @@
 				return $q.when(_employees);
 			}
 		};
+		function onDatabaseChange(change) {
+			var index = findIndex(_employees, change.id);
+			var birthday = _employees[index];
+
+			if (change.deleted) {
+				if (birthday) {
+					_employees.splice(index, 1); // delete
+				}
+			} else {
+				if (birthday && birthday._id === change.id) {
+					_employees[index] = change.doc; // update
+				} else {
+					_employees.splice(index, 0, change.doc) // insert
+				}
+			}
+		}
+		// Binary search, the array is by default sorted by _id.
+		function findIndex(array, id) {
+			var low = 0, high = array.length, mid;
+			while (low < high) {
+				mid = (low + high) >>> 1;
+				array[mid]._id < id ? low = mid + 1 : high = mid
+			}
+			return low;
+		}
 		//Add a birthday
-		function addEmployee(birthday) {
-			return $q.when(_db.post(birthday));
+		
+		function addEmployee(_employees) {
+			console.log('adding');
+			return $q.when(_db.post(_employees));
 		}
 		function initDb() {
+			
 			_db = new PouchDB('employees', { adaptor: 'websql' });
+			console.log('created');
+		}
+
+		function deleteEmployee(employee) {
+			return $q.when(_db.remove(employee));
 		}
 
 
@@ -37,8 +70,8 @@
 			getEmployees: getEmployees,
 			addEmployee: addEmployee,
 			deleteEmployee: deleteEmployee,
-			getByEmployeeId: getByEmployeeId,
-			initDb: initDb
+			//getByEmployeeId: getByEmployeeId,
+			initDB: initDb
 		}
 
 
